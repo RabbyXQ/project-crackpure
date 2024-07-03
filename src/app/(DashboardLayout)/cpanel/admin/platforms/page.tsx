@@ -30,6 +30,28 @@ type Platform = {
   cover?: string;
 };
 
+const coverStyle = (coverImageUrl: string) => ({
+  backgroundImage: `url(${coverImageUrl})`,
+  backgroundSize: 'cover',
+  backgroundPosition: 'center',
+  backgroundRepeat: 'no-repeat',
+  filter: 'blur(8px)',
+  height: '200px',
+  width: '100%',
+  position: 'absolute',
+  top: 0,
+  left: 0,
+  zIndex: -1,
+  borderRadius: '8px',
+});
+
+const iconStyle = {
+  borderRadius: '50%',
+  width: '50px',
+  height: '50px',
+  objectFit: 'cover',
+};
+
 const PlatformList = () => {
   const [platforms, setPlatforms] = useState<Platform[]>([]);
   const [filteredPlatforms, setFilteredPlatforms] = useState<Platform[]>([]);
@@ -127,11 +149,11 @@ const PlatformList = () => {
         method: 'PUT',
         body: formData,
       });
-
+  
       if (!response.ok) {
         throw new Error('Failed to update platform');
       }
-
+  
       const data = await response.json();
       if (data.platform) {
         setPlatforms((prevPlatforms) =>
@@ -156,6 +178,7 @@ const PlatformList = () => {
       setSnackbarOpen(true);
     }
   };
+  
 
   const handleDelete = async (platform_id: number) => {
     try {
@@ -225,8 +248,20 @@ const PlatformList = () => {
           {paginatedPlatforms.length > 0 ? (
             paginatedPlatforms.map((platform) => (
               <Grid item xs={12} sm={6} md={4} lg={3} key={platform.platform_id}>
-                <Card variant="outlined">
-                  <CardContent>
+                <Card variant="outlined" sx={{ position: 'relative', borderRadius: '8px' }}>
+                  {(
+                    <div
+                      style={coverStyle(platform.cover)}
+                    />
+                  )}
+                  <CardContent sx={{ position: 'relative', zIndex: 1 }}>
+                    {platform.icon && (
+                      <img
+                        src={platform.icon}
+                        alt={platform.platform_name}
+                        style={iconStyle}
+                      />
+                    )}
                     <Typography variant="h6" component="div">
                       {platform.platform_name}
                     </Typography>
@@ -268,6 +303,7 @@ const PlatformList = () => {
         </Stack>
         {selectedPlatform && (
           <EditPlatformDialog
+            fetchPlatform={fetchPlatforms}
             open={editDialogOpen}
             onClose={() => setEditDialogOpen(false)}
             platform={selectedPlatform}

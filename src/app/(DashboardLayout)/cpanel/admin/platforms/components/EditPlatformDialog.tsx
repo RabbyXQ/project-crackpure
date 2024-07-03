@@ -15,6 +15,7 @@ import {
 import { Platform } from '../page'; // Adjust this import based on your file structure
 
 type EditPlatformDialogProps = {
+  fetchPlatform: () => void;
   open: boolean;
   platform: Platform;
   onClose: () => void;
@@ -25,6 +26,7 @@ type EditPlatformDialogProps = {
 };
 
 const EditPlatformDialog: React.FC<EditPlatformDialogProps> = ({
+  fetchPlatform,
   open,
   platform,
   onClose,
@@ -51,7 +53,7 @@ const EditPlatformDialog: React.FC<EditPlatformDialogProps> = ({
     }
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (platformName.trim()) {
       const formData = new FormData();
       formData.append('platform_id', platform.platform_id.toString());
@@ -62,11 +64,18 @@ const EditPlatformDialog: React.FC<EditPlatformDialogProps> = ({
       if (cover) formData.append('cover', cover);
       if (thumbnail) formData.append('thumbnail', thumbnail);
 
-      onSave(formData);
-      setSnackbarMessage('Platform updated successfully');
-      setSnackbarSeverity('success');
-      setSnackbarOpen(true);
-      onClose();
+      try {
+        await onSave(formData);
+        setSnackbarMessage('Platform updated successfully');
+        setSnackbarSeverity('success');
+        setSnackbarOpen(true);
+        onClose();
+        fetchPlatform(); // Fetch updated data
+      } catch (error) {
+        setSnackbarMessage('Error updating platform');
+        setSnackbarSeverity('error');
+        setSnackbarOpen(true);
+      }
     } else {
       setSnackbarMessage('Platform name is required');
       setSnackbarSeverity('error');

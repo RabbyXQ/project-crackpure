@@ -1,6 +1,7 @@
 import {
   IconBoxMultiple, IconCircleDot,IconListTree, IconHome, IconInfoCircle, IconLayout, IconLayoutGrid, IconList, IconPhoto, IconPoint, IconStar, IconTable, IconUser,
-  IconBrandWindows
+  IconBrandWindows,
+  IconCategory
 } from "@tabler/icons-react";
 
 import { uniqueId } from "lodash";
@@ -23,6 +24,12 @@ const Menuitems = [
     title: "Platforms",
     icon: IconBrandWindows,
     href: "/cpanel/admin/platforms"
+  },
+  {
+    id: uniqueId(),
+    title: "Categories",
+    icon: IconCategory,
+    href: "/cpanel/admin/categories"
   },
   {
     id: uniqueId(),
