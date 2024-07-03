@@ -1,5 +1,6 @@
 import {
-  IconBoxMultiple, IconCircleDot,IconListTree, IconHome, IconInfoCircle, IconLayout, IconLayoutGrid, IconList, IconPhoto, IconPoint, IconStar, IconTable, IconUser
+  IconBoxMultiple, IconCircleDot,IconListTree, IconHome, IconInfoCircle, IconLayout, IconLayoutGrid, IconList, IconPhoto, IconPoint, IconStar, IconTable, IconUser,
+  IconBrandWindows
 } from "@tabler/icons-react";
 
 import { uniqueId } from "lodash";
@@ -16,6 +17,12 @@ const Menuitems = [
     title: "Admins",
     icon: IconListTree,
     href: "/cpanel/admin"
+  },
+  {
+    id: uniqueId(),
+    title: "Platforms",
+    icon: IconBrandWindows,
+    href: "/cpanel/admin/platforms"
   },
   {
     id: uniqueId(),
