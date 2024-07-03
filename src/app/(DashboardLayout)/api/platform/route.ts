@@ -148,7 +148,6 @@ export async function PUT(request: Request) {
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
 }
-
 // Handle DELETE requests to delete a platform
 export async function DELETE(request: Request) {
   try {
@@ -158,18 +157,61 @@ export async function DELETE(request: Request) {
       return NextResponse.json({ error: 'Platform ID is required' }, { status: 400 });
     }
 
-    const query = 'DELETE FROM platform WHERE platform_id = ?';
-
-    return new Promise<NextResponse>((resolve, reject) => {
-      connection.query(query, [platform_id], (error) => {
+    // Fetch the file paths from the database
+    const platformQuery = 'SELECT icon, cover, thumbnail FROM platform WHERE platform_id = ?';
+    const platform = await new Promise<any>((resolve, reject) => {
+      connection.query(platformQuery, [platform_id], (error, results) => {
         if (error) {
-          console.error('Failed to delete data:', error);
-          reject(NextResponse.json({ error: 'Failed to delete data' }, { status: 500 }));
+          console.error('Failed to fetch platform:', error);
+          reject(new Error('Failed to fetch platform'));
           return;
         }
-        resolve(NextResponse.json({ message: 'Platform deleted successfully' }, { status: 200 }));
+        if (results.length === 0) {
+          resolve(null);
+        } else {
+          resolve(results[0]);
+        }
       });
     });
+
+    if (!platform) {
+      return NextResponse.json({ error: 'Platform not found' }, { status: 404 });
+    }
+
+    // Delete files from the filesystem
+    const uploadDirs = {
+      icon: path.join(process.cwd(), 'public', 'uploads', 'icons'),
+      cover: path.join(process.cwd(), 'public', 'uploads', 'covers'),
+      thumbnail: path.join(process.cwd(), 'public', 'uploads', 'site_thumbs'),
+    };
+
+    const filesToDelete = [platform.icon, platform.cover, platform.thumbnail].filter(Boolean);
+
+    await Promise.all(filesToDelete.map(async (filePath: string) => {
+      const fullPath = path.join(process.cwd(), 'public', filePath);
+      try {
+        if (fs.existsSync(fullPath)) {
+          await fs.promises.unlink(fullPath);
+        }
+      } catch (error) {
+        console.error('Error deleting file:', error);
+      }
+    }));
+
+    // Delete the platform from the database
+    const deleteQuery = 'DELETE FROM platform WHERE platform_id = ?';
+    await new Promise<void>((resolve, reject) => {
+      connection.query(deleteQuery, [platform_id], (error) => {
+        if (error) {
+          console.error('Failed to delete platform:', error);
+          reject(new Error('Failed to delete platform'));
+          return;
+        }
+        resolve();
+      });
+    });
+
+    return NextResponse.json({ message: 'Platform deleted successfully' }, { status: 200 });
   } catch (error) {
     console.error('Error in DELETE request:', error);
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
