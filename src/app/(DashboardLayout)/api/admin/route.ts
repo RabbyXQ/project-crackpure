@@ -1,79 +1,118 @@
-'use service'
+'use service';
 
 import { NextResponse } from 'next/server';
 import connection from '../../../../utils/db';
+import bcrypt from 'bcrypt';
 
 type Admin = {
   username: string;
   email?: string;
+  password?: string;
 };
 
 // Handle GET requests to fetch all admins
 export async function GET() {
-  return new Promise<NextResponse>((resolve, reject) => {
-    connection.query('SELECT * FROM admin', (error, results) => {
-      if (error) {
-        reject(NextResponse.json({ error: 'Database query failed' }, { status: 500 }));
-        return;
-      }
-      resolve(NextResponse.json({ admins: results as Admin[] }));
+  try {
+    console.log('Handling GET request');
+    return new Promise<NextResponse>((resolve, reject) => {
+      connection.query('SELECT * FROM admin', (error, results) => {
+        if (error) {
+          console.error('Database query failed:', error);
+          reject(NextResponse.json({ error: 'Database query failed' }, { status: 500 }));
+          return;
+        }
+        console.log('Fetched admins:', results);
+        resolve(NextResponse.json({ admins: results as Admin[] }));
+      });
     });
-  });
+  } catch (error) {
+    console.error('Error handling GET request:', error);
+    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
+  }
 }
 
 // Handle POST requests to insert a new admin
 export async function POST(request: Request) {
-  const { username, email } = await request.json();
+  try {
+    const { username, password, email } = await request.json();
 
-  if (!username) {
-    return NextResponse.json({ error: 'Username is required' }, { status: 400 });
-  }
+    if (!username || !password) {
+      return NextResponse.json({ error: 'Username and password are required' }, { status: 400 });
+    }
 
-  return new Promise<NextResponse>((resolve, reject) => {
-    connection.query('INSERT INTO admin (username, email) VALUES (?, ?)', [username, email], (error) => {
-      if (error) {
-        reject(NextResponse.json({ error: 'Failed to insert data' }, { status: 500 }));
-        return;
-      }
-      resolve(NextResponse.json({ message: 'Admin added successfully' }, { status: 201 }));
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    return new Promise<NextResponse>((resolve, reject) => {
+      connection.query(
+        'INSERT INTO admin (username, passwd, email) VALUES (?, ?, ?)',
+        [username, hashedPassword, email],
+        (error) => {
+          if (error) {
+            console.error('Failed to insert data:', error);
+            reject(NextResponse.json({ error: 'Failed to insert data' }, { status: 500 }));
+            return;
+          }
+          resolve(NextResponse.json({ message: 'Admin added successfully' }, { status: 201 }));
+        }
+      );
     });
-  });
+  } catch (error) {
+    console.error('Error in POST request:', error);
+    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
+  }
 }
 
-// Handle PUT requests to update an existing admin
+// Handle PUT requests to update an admin
 export async function PUT(request: Request) {
-  const { id, username, email } = await request.json();
+  try {
+    const { username, email, password } = await request.json();
 
-  if (!id || !username) {
-    return NextResponse.json({ error: 'ID and username are required' }, { status: 400 });
-  }
+    if (!username) {
+      return NextResponse.json({ error: 'Username is required' }, { status: 400 });
+    }
 
-  return new Promise<NextResponse>((resolve, reject) => {
-    connection.query('UPDATE admin SET username = ?, email = ? WHERE id = ?', [username, email, id], (error) => {
-      if (error) {
-        reject(NextResponse.json({ error: 'Failed to update data' }, { status: 500 }));
-        return;
-      }
-      resolve(NextResponse.json({ message: 'Admin updated successfully' }, { status: 200 }));
+    const query = 'UPDATE admin SET email = ?, passwd = ? WHERE username = ?';
+    const values = [email, password, username];
+
+    return new Promise<NextResponse>((resolve, reject) => {
+      connection.query(query, values, (error) => {
+        if (error) {
+          console.error('Failed to update data:', error);
+          reject(NextResponse.json({ error: 'Failed to update data' }, { status: 500 }));
+          return;
+        }
+        resolve(NextResponse.json({ message: 'Admin updated successfully' }, { status: 200 }));
+      });
     });
-  });
+  } catch (error) {
+    console.error('Error in PUT request:', error);
+    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
+  }
 }
 
-// Handle DELETE requests to remove an admin
+// Handle DELETE requests to delete an admin
 export async function DELETE(request: Request) {
-  const { id } = await request.json();
+  try {
+    const { username } = await request.json();
 
-  if (!id) {
-    return NextResponse.json({ error: 'ID is required' }, { status: 400 });
-  }
+    if (!username) {
+      return NextResponse.json({ error: 'Username is required' }, { status: 400 });
+    }
 
-  return new Promise<NextResponse>((resolve, reject) => {
-    connection.query('DELETE FROM admin WHERE id = ?', [id], (error) => {
-      if (error) {
-        reject(NextResponse.json({ error: 'Failed to delete data' }, { status: 500 }));
-        return;
-      }
-      resolve(NextResponse.json({ message: 'Admin deleted successfully' }, { status: 200 }));
+    const query = 'DELETE FROM admin WHERE username = ?';
+
+    return new Promise<NextResponse>((resolve, reject) => {
+      connection.query(query, [username], (error) => {
+        if (error) {
+          console.error('Failed to delete data:', error);
+          reject(NextResponse.json({ error: 'Failed to delete data' }, { status: 500 }));
+          return;
+        }
+        resolve(NextResponse.json({ message: 'Admin deleted successfully' }, { status: 200 }));
+      });
     });
-  });
+  } catch (error) {
+    console.error('Error in DELETE request:', error);
+    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
+  }
 }
