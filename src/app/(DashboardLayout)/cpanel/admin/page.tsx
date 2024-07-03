@@ -33,7 +33,7 @@ const AdminList = () => {
   const [addDialogOpen, setAddDialogOpen] = useState<boolean>(false);
   const [selectedAdmin, setSelectedAdmin] = useState<Admin | null>(null);
   const [currentPage, setCurrentPage] = useState<number>(1);
-  const itemsPerPage = 10;
+  const itemsPerPage = 12;
 
   // Fetch admins on mount
   useEffect(() => {

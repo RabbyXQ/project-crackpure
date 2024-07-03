@@ -23,6 +23,9 @@ type Platform = {
   platform_id: number;
   platform_name: string;
   description?: string;
+  icon?: string;
+  thumbnail?: string;
+  cover?: string;
 };
 
 const PlatformList = () => {
@@ -34,57 +37,73 @@ const PlatformList = () => {
   const [addDialogOpen, setAddDialogOpen] = useState<boolean>(false);
   const [selectedPlatform, setSelectedPlatform] = useState<Platform | null>(null);
   const [currentPage, setCurrentPage] = useState<number>(1);
-  const itemsPerPage = 10;
+  const itemsPerPage = 12;
+
+  const fetchPlatforms = async () => {
+    try {
+      const response = await fetch('/api/platform');
+      if (!response.ok) {
+        throw new Error('Failed to fetch platforms');
+      }
+      const data = await response.json();
+      // Ensure data.platforms is an array
+      const platformsData = Array.isArray(data.platforms) ? data.platforms : [];
+      setPlatforms(platformsData);
+      setFilteredPlatforms(platformsData); // Initialize filteredPlatforms
+    } catch (error) {
+      console.error('Error fetching platforms:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   // Fetch platforms on mount
   useEffect(() => {
-    const fetchPlatforms = async () => {
-      try {
-        const response = await fetch('/api/platform');
-        if (!response.ok) {
-          throw new Error('Failed to fetch platforms');
-        }
-        const data = await response.json();
-        setPlatforms(data.platforms || []);
-        setFilteredPlatforms(data.platforms || []); // Initialize filteredPlatforms
-      } catch (error) {
-        console.error('Error fetching platforms:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
     fetchPlatforms();
   }, []);
 
   // Filter platforms based on search query
   useEffect(() => {
+    const query = searchQuery.toLowerCase();
     setFilteredPlatforms(
-      platforms.filter((platform) =>
-        platform.platform_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        (platform.description && platform.description.toLowerCase().includes(searchQuery.toLowerCase()))
-      )
+      platforms.filter((platform) => {
+        if (!platform) return false; // Ensure platform is defined
+
+        const platformNameMatches = platform.platform_name
+          ? platform.platform_name.toLowerCase().includes(query)
+          : false;
+
+        const descriptionMatches = platform.description
+          ? platform.description.toLowerCase().includes(query)
+          : false;
+
+        return platformNameMatches || descriptionMatches;
+      })
     );
     setCurrentPage(1); // Reset to first page on search query change
   }, [searchQuery, platforms]);
 
   // Handle adding a new platform
-  const handleAdd = async (platform: { platform_name: string; description?: string }) => {
+  const handleAdd = async (formData: FormData) => {
     try {
       const response = await fetch('/api/platform', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(platform),
+        body: formData, // Send FormData directly
       });
 
       if (!response.ok) {
         throw new Error('Failed to add platform');
       }
 
-      // Use `platform` directly here
-      setPlatforms((prevPlatforms) => [...prevPlatforms, platform]);
-      setFilteredPlatforms((prevFilteredPlatforms) => [...prevFilteredPlatforms, platform]);
-      setAddDialogOpen(false);
+      const data = await response.json();
+      // Ensure data.platform is defined and has the expected structure
+      if (data.platform && typeof data.platform.platform_id === 'number') {
+        setPlatforms((prevPlatforms) => [...prevPlatforms, data.platform]);
+        setFilteredPlatforms((prevFilteredPlatforms) => [...prevFilteredPlatforms, data.platform]);
+        setAddDialogOpen(false); // Close dialog after saving
+      }
+      fetchPlatforms();
+
     } catch (error) {
       console.error('Error adding platform:', error);
     }
@@ -181,34 +200,42 @@ const PlatformList = () => {
         onChange={handleSearchChange}
       />
       <Grid container spacing={2}>
-        {paginatedPlatforms.map((platform) => (
-          <Grid item xs={12} sm={6} md={4} lg={3} key={platform.platform_id}>
-            <Card variant="outlined">
-              <CardContent>
-                <Typography variant="h6" component="div">
-                  {platform.platform_name}
-                </Typography>
-                <Typography variant="body2" color="textSecondary">
-                  {platform.description || 'No description'}
-                </Typography>
-              </CardContent>
-              <CardActions>
-                <IconButton
-                  color="primary"
-                  onClick={() => {
-                    setSelectedPlatform(platform);
-                    setEditDialogOpen(true);
-                  }}
-                >
-                  <IconEdit />
-                </IconButton>
-                <IconButton color="error" onClick={() => handleDelete(platform.platform_id)}>
-                  <IconTrash />
-                </IconButton>
-              </CardActions>
-            </Card>
+        {paginatedPlatforms.length > 0 ? (
+          paginatedPlatforms.map((platform) => (
+            <Grid item xs={12} sm={6} md={4} lg={3} key={platform.platform_id}>
+              <Card variant="outlined">
+                <CardContent>
+                  <Typography variant="h6" component="div">
+                    {platform.platform_name}
+                  </Typography>
+                  <Typography variant="body2" color="textSecondary">
+                    {platform.description || 'No description'}
+                  </Typography>
+                </CardContent>
+                <CardActions>
+                  <IconButton
+                    color="primary"
+                    onClick={() => {
+                      setSelectedPlatform(platform);
+                      setEditDialogOpen(true);
+                    }}
+                  >
+                    <IconEdit />
+                  </IconButton>
+                  <IconButton color="error" onClick={() => handleDelete(platform.platform_id)}>
+                    <IconTrash />
+                  </IconButton>
+                </CardActions>
+              </Card>
+            </Grid>
+          ))
+        ) : (
+          <Grid item xs={12}>
+            <Typography variant="body1" align="center">
+              No platforms available
+            </Typography>
           </Grid>
-        ))}
+        )}
       </Grid>
       <Stack direction="row" justifyContent="center" mt={2}>
         <Pagination
@@ -228,7 +255,7 @@ const PlatformList = () => {
       <AddPlatformDialog
         open={addDialogOpen}
         onClose={() => setAddDialogOpen(false)}
-        onSave={handleAdd}
+        onSave={handleAdd} // Ensure onSave closes the dialog
       />
     </BaseCard>
   );
