@@ -1,5 +1,4 @@
-'use client'
-
+'use client';
 
 import React, { useState } from 'react';
 import {
@@ -16,10 +15,20 @@ import {
 type AddPlatformDialogProps = {
   open: boolean;
   onClose: () => void;
-  onSave: (formData: FormData) => void; // Updated to accept FormData
+  onSave: (formData: FormData) => void;
+  setSnackbarOpen: React.Dispatch<React.SetStateAction<boolean>>;
+  setSnackbarMessage: React.Dispatch<React.SetStateAction<string>>;
+  setSnackbarSeverity: React.Dispatch<React.SetStateAction<'success' | 'error'>>;
 };
 
-const AddPlatformDialog: React.FC<AddPlatformDialogProps> = ({ open, onClose, onSave }) => {
+const AddPlatformDialog: React.FC<AddPlatformDialogProps> = ({
+  open,
+  onClose,
+  onSave,
+  setSnackbarOpen,
+  setSnackbarMessage,
+  setSnackbarSeverity,
+}) => {
   const [platformName, setPlatformName] = useState<string>('');
   const [description, setDescription] = useState<string>('');
   const [icon, setIcon] = useState<File | null>(null);
@@ -36,13 +45,21 @@ const AddPlatformDialog: React.FC<AddPlatformDialogProps> = ({ open, onClose, on
       if (cover) formData.append('cover', cover);
 
       onSave(formData);
-      // Reset form fields
+      setSnackbarMessage('Platform added successfully');
+      setSnackbarSeverity('success');
+      setSnackbarOpen(true);
+
+      // Reset form fields and close dialog
       setPlatformName('');
       setDescription('');
       setIcon(null);
       setThumbnail(null);
       setCover(null);
       onClose();
+    } else {
+      setSnackbarMessage('Platform name is required');
+      setSnackbarSeverity('error');
+      setSnackbarOpen(true);
     }
   };
 

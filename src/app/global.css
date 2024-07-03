@@ -1,0 +1,3 @@
+.snackbar-root {
+    z-index: 1500 !important; /* Ensure it's on top */
+  }
